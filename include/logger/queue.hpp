@@ -53,12 +53,12 @@ public:
         }
     }
 
-    reference front()
+    value_type front()
     {
         return m_values[m_head];
     }
 
-    const reference front() const
+    const value_type& front() const
     {
         return m_values[m_head];
     }
@@ -72,7 +72,7 @@ public:
         }
     }
 
-    const reference at(size_t idx) const
+    const value_type& at(size_t idx) const
     {
         assert(idx < size());
         return m_values[(m_head + idx) % m_max_items];
