@@ -24,6 +24,24 @@
     #define LOG_API
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define DEPRICATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+    #define DEPRICATED __declspec(deprecated)
+#else
+    #define DEPRICATED
+#endif
+
+/**
+ * below mentioned link says that noexcept keyword should be used by cheking _MSC_VER
+ * https://stackoverflow.com/questions/18387640/how-to-deal-with-noexcept-in-visual-studio
+ **/
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+    #define noexcept _NOEXCEPT
+#endif
+
+
+
 namespace details {
 
 /**
