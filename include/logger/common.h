@@ -40,7 +40,16 @@
     #define noexcept _NOEXCEPT
 #endif
 
+class LOG_API exception : public std::exception
+{
+public:
+    explicit exception(const std::string& msg);
+    exception(const std::string& msg, int errno);
+    const char* what() const noexcept override;
 
+public:
+    std::string m_msg;
+}
 
 namespace details {
 
