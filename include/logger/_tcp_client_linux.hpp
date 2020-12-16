@@ -49,6 +49,10 @@ public:
                 throw "write(2) failed"; //errno
                 //TODO add internal exception
             }
+            if (result == 0) {
+                break;
+            }
+            sent += static_cast<size_t>(result);
         }
     }
 
@@ -56,19 +60,51 @@ public:
     {
         close();
         struct addrinfo hints{};
-        ::memset(&hints, 0, sizeof(addrinfo));
+        ::memset(&hints, 0, sizeof(struct addrinfo));
         hints.ai_family = AF_INET;
         hints.ai_socket_type = SOCK_STREAM;
         hints.ai_flags = AI_NUMERICSERV;
         hints.ai_protocol = 0;
 
         std::string port_string = std::to_string(port);
-        astruct addrinfo* addrinfo_result;
+        struct addrinfo* addrinfo_result;
         auto rv = ::getaddrinfo(hostname.c_str(), port_string.c_str(), &hints, &addrinfo_result);
         if (rv != 0) {
-            throw;
+            throw "::getaddrinfo failed{}"; //gai_strerror(rv);
             //TODO
         }
+        int last = 0;
+        for (const auto* rp = addrinfo_result; rp != nullptr; rp = rp->ai_next) {
+            const int flag = SOCK_CLOEXEC;
+            m_socket = ::socket(rp->ai_familym rp->ai_socktype | flags, rp->ai_protocol);
+           if (m_socket == -1) {
+               last == errno;
+               continue;
+           }
+           rv = ::connect(m_socket, rp->ai_addr, rp->ai_addrlen);
+           if (rv == 0) {
+               break;
+           } else {
+               last = errno;
+               ::close(m_socket);
+               m_socket = -1;
+           }
+        }
+        ::freeaddrinfo(addrinfo_result);
+        if (m_socket == -1) {
+            throw "::connect failed"; // last;
+        }
+        int enable = 1;
+        ::setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&enable, sizeof(enable));
+
+        // prevent sigpipe on systems where MSG_NOSIGNAL is not available
+        #if defined(SO_NOSIGPIPE) && !defined(MSG_NOSIGNAL)
+        ::setsockopt(socket_, SOL_SOCKET, SO_NOSIGPIPE, (char *)&enable_flag, sizeof(enable_flag));
+        #endif
+
+        #if !defined(SO_NOSIGPIPE) && !defined(MSG_NOSIGNAL)
+        #error "tcp_sink would raise SIGPIPE since niether SO_NOSIGPIPE nor MSG_NOSIGNAL are available"
+        #endif
     }
 
 private:
