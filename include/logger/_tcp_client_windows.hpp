@@ -72,7 +72,8 @@ public:
             close();
         }
         struct addrinfo hints {};
-        memset(&hints, sizeof(struct hints));
+        //https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa366920(v=vs.85)
+        ZeroMemory(&hints, sizeof(hints));
 
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
@@ -86,7 +87,7 @@ public:
         if (rv != 0) {
             last_error = ::WSAGetLastError();
             WSACleanup();
-            throw_winsock_error_("getaddrinfo failed", last_error);
+            WinSock::reportError("getaddrinfo failed", last_error);
         }
 
         for (auto *rp = addrinfo_result; rp != nullptr; rp = rp->ai_next) {
@@ -106,7 +107,7 @@ public:
         ::freeaddrinfo(addrinfo_result);
         if (socket_ == INVALID_SOCKET) {
             WSACleanup();
-            throw_winsock_error_("connect failed", last_error);
+            WinSock::reportError("connect failed", last_error);
         }
         // set TCP_NODELAY
         int enable_flag = 1;
@@ -135,13 +136,13 @@ private:
             }
         }
 
-        void reportError()
+        static void reportError(const std::string &msg, int last_error)
         {
             char buffer[512];
             ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, last_error,
                     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, (sizeof(buffer) / sizeof(char)), NULL);
             //!TODO add common exception class to handle lib errors
-            //throw_exception(fmt::format("tcp_sink - {}: {}", msg, buf));
+            throw_exception(fmt::format("tcp_sink - {}: {}", msg, buf));
         }
     };
 
